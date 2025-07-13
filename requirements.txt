@@ -4,3 +4,4 @@ matplotlib
 pytz
 tsdf
 scipy
+scikit-learn
