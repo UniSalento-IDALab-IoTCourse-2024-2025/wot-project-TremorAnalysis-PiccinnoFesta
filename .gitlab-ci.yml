@@ -1,0 +1,42 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+stages:
+  - build
+  - deploy
+
+before_script:
+  # Setup SSH key per EC2
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  - eval "$(ssh-agent -s)"
+  - ssh-add ~/.ssh/id_rsa
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+  # Login al Docker Registry di GitLab
+  - echo "$CI_JOB_TOKEN" | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+
+deploy:
+  stage: deploy
+  only:
+    - main  # solo quando pushi su main
+  script:
+    - echo "Deploying to AWS EC2 at $EC2_HOST"
+    - ssh ec2-user@$EC2_HOST "
+        docker pull $IMAGE_TAG &&
+        docker stop tremor || true &&
+        docker rm tremor || true &&
+        docker run -d -p 5000:5000 --name tremor $IMAGE_TAG
+      "
