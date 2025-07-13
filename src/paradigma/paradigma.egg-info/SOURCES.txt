@@ -1,0 +1,10 @@
+setup.py
+paradigma.egg-info/PKG-INFO
+paradigma.egg-info/SOURCES.txt
+paradigma.egg-info/dependency_links.txt
+paradigma.egg-info/top_level.txt
+pipelines/__init__.py
+pipelines/gait_pipeline.py
+pipelines/pulse_rate_pipeline.py
+pipelines/pulse_rate_utils.py
+pipelines/tremor_pipeline.py
