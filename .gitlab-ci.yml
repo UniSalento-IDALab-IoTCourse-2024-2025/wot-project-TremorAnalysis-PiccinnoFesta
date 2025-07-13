@@ -31,7 +31,7 @@ build:
 deploy:
   stage: deploy
   only:
-    - main  # solo quando pushi su main
+    - master  # solo quando pushi su master
   script:
     - echo "Deploying to AWS EC2 at $EC2_HOST"
     - ssh ec2-user@$EC2_HOST "
