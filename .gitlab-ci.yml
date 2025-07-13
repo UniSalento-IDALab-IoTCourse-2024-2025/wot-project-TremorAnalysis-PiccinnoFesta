@@ -34,7 +34,7 @@ deploy:
     - master  # solo quando pushi su master
   script:
     - echo "Deploying to AWS EC2 at $EC2_HOST"
-    - ssh ec2-user@$EC2_HOST "
+    - ssh ubuntu@$EC2_HOST "
         docker pull $IMAGE_TAG &&
         docker stop tremor || true &&
         docker rm tremor || true &&
