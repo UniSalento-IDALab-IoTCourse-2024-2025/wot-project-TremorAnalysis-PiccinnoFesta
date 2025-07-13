@@ -23,10 +23,11 @@ deploy:
     - master
   script:
     - echo "Deploying to EC2 via docker-compose"
-    - scp -r docker-compose.yml Dockerfile requirements.txt src ubuntu@$EC2_HOST:/home/ubuntu/ 
+    - ssh ubuntu@$EC2_HOST "rm -rf ~/app && mkdir ~/app"
+    - scp -r docker-compose.yml Dockerfile requirements.txt src ubuntu@$EC2_HOST:/home/ubuntu/app/
     - ssh ubuntu@$EC2_HOST "
-        cd /home/ubuntu/app &&
-        docker compose down || true &&
-        docker compose build &&
-        docker compose up -d
+      cd /home/ubuntu/app &&
+      docker compose down || true &&
+      docker compose build &&
+      docker compose up -d
       "
