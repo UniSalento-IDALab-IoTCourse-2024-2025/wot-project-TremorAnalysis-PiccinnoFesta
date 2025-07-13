@@ -4,13 +4,13 @@ from pathlib import Path
 from scipy import signal
 from scipy.stats import gaussian_kde
 
-from classification import ClassifierPackage
-from constants import DataColumns
-from config import TremorConfig
-from feature_extraction import compute_mfccs, compute_power_in_bandwidth, compute_total_power, extract_frequency_peak, \
+from paradigma.classification import ClassifierPackage
+from paradigma.constants import DataColumns
+from paradigma.config import TremorConfig
+from paradigma.feature_extraction import compute_mfccs, compute_power_in_bandwidth, compute_total_power, extract_frequency_peak, \
     extract_tremor_power
-from segmenting import tabulate_windows, tabulate_windows_safe,WindowedDataExtractor
-from util import aggregate_parameter
+from paradigma.segmenting import tabulate_windows, tabulate_windows_safe,WindowedDataExtractor
+from paradigma.util import aggregate_parameter
 
 
 def extract_tremor_features(df: pd.DataFrame, config: TremorConfig) -> pd.DataFrame:
