@@ -8,7 +8,7 @@ def run_tremor_analysis():
     try:
         # Avvia lo script tremor_analisys.py
         result = subprocess.run(
-            ['python', 'tremor_analisys.py'],
+            ['python', 'src/tremor_analisys.py'],
             capture_output=True,
             text=True
         )
