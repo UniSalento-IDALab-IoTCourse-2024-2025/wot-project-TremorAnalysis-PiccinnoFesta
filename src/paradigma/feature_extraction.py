@@ -7,7 +7,7 @@ from scipy.signal import find_peaks, windows
 from scipy.stats import kurtosis, skew
 from sklearn.decomposition import PCA
 
-from paradigma.config import PulseRateConfig
+from .config import PulseRateConfig
 
 
 def compute_statistics(data: np.ndarray, statistic: str, abs_stats: bool=False) -> np.ndarray:

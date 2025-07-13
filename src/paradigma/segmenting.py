@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from typing import List, Tuple
-from paradigma.constants import DataColumns
+from .constants import DataColumns
 
 import numpy as np
 

@@ -3,15 +3,15 @@ import pandas as pd
 from scipy.signal import periodogram
 from typing import List, Tuple
 
-from paradigma.classification import ClassifierPackage
-from paradigma.constants import DataColumns
-from paradigma.config import GaitConfig
-from paradigma.feature_extraction import pca_transform_gyroscope, compute_angle, remove_moving_average_angle, \
+from classification import ClassifierPackage
+from constants import DataColumns
+from config import GaitConfig
+from feature_extraction import pca_transform_gyroscope, compute_angle, remove_moving_average_angle, \
     extract_angle_extremes, compute_range_of_motion, compute_peak_angular_velocity, compute_statistics, \
     compute_std_euclidean_norm, compute_power_in_bandwidth, compute_dominant_frequency, compute_mfccs, \
     compute_total_power
-from paradigma.segmenting import tabulate_windows, create_segments, discard_segments, categorize_segments, WindowedDataExtractor
-from paradigma.util import aggregate_parameter
+from segmenting import tabulate_windows, create_segments, discard_segments, categorize_segments, WindowedDataExtractor
+from util import aggregate_parameter
 
 
 def extract_gait_features(

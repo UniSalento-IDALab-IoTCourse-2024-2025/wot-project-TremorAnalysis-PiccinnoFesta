@@ -8,7 +8,7 @@ from typing import List, Tuple
 import tsdf
 from tsdf import TSDFMetadata
 
-from paradigma.constants import DataColumns, TimeUnit
+from .constants import DataColumns, TimeUnit
 
 
 def parse_iso8601_to_datetime(date_str):

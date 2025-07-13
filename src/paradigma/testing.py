@@ -6,17 +6,17 @@ from pathlib import Path
 import tsdf
 from typing import List
 
-from paradigma.classification import ClassifierPackage
-from paradigma.config import IMUConfig, PPGConfig, GaitConfig, TremorConfig, PulseRateConfig
-from paradigma.constants import DataColumns, TimeUnit
-from paradigma.pipelines.gait_pipeline import extract_gait_features, detect_gait, \
+from .classification import ClassifierPackage
+from .config import IMUConfig, PPGConfig, GaitConfig, TremorConfig, PulseRateConfig
+from .constants import DataColumns, TimeUnit
+from .pipelines.gait_pipeline import extract_gait_features, detect_gait, \
     extract_arm_activity_features, filter_gait
-from paradigma.pipelines.tremor_pipeline import extract_tremor_features, detect_tremor, \
+from .pipelines.tremor_pipeline import extract_tremor_features, detect_tremor, \
     aggregate_tremor
-from paradigma.pipelines.pulse_rate_pipeline import extract_signal_quality_features, signal_quality_classification, \
+from .pipelines.pulse_rate_pipeline import extract_signal_quality_features, signal_quality_classification, \
     aggregate_pulse_rate
-from paradigma.preprocessing import preprocess_imu_data, preprocess_ppg_data
-from paradigma.util import read_metadata, write_df_data, get_end_iso8601, merge_predictions_with_timestamps
+from .preprocessing import preprocess_imu_data, preprocess_ppg_data
+from .util import read_metadata, write_df_data, get_end_iso8601, merge_predictions_with_timestamps
 
 
 def preprocess_imu_data_io(path_to_input: str | Path, path_to_output: str | Path, 

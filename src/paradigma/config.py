@@ -1,5 +1,5 @@
 from typing import Dict, List
-from paradigma.constants import DataColumns, DataUnits
+from .constants import DataColumns, DataUnits
 import numpy as np
 
 class BaseConfig:

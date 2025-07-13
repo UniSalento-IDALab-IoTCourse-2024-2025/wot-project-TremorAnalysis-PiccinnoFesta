@@ -8,14 +8,14 @@ from scipy.signal.windows import hamming, hann
 import tsdf
 from typing import List
 
-from paradigma.classification import ClassifierPackage
-from paradigma.constants import DataColumns
-from paradigma.config import PulseRateConfig
-from paradigma.feature_extraction import compute_statistics, compute_signal_to_noise_ratio, compute_auto_correlation, \
+from classification import ClassifierPackage
+from constants import DataColumns
+from config import PulseRateConfig
+from feature_extraction import compute_statistics, compute_signal_to_noise_ratio, compute_auto_correlation, \
     compute_dominant_frequency, compute_relative_power, compute_spectral_entropy
-from paradigma.pipelines.pulse_rate_utils import assign_sqa_label, extract_pr_segments, extract_pr_from_segment
-from paradigma.segmenting import tabulate_windows, WindowedDataExtractor
-from paradigma.util import aggregate_parameter
+from pipelines.pulse_rate_utils import assign_sqa_label, extract_pr_segments, extract_pr_from_segment
+from segmenting import tabulate_windows, WindowedDataExtractor
+from util import aggregate_parameter
 
 def extract_signal_quality_features(df_ppg: pd.DataFrame, df_acc: pd.DataFrame, ppg_config: PulseRateConfig, acc_config: PulseRateConfig) -> pd.DataFrame:
     """	

@@ -10,7 +10,7 @@ from datetime import datetime
 
 from .constants import TimeUnit, DataColumns
 from .config import PPGConfig, IMUConfig
-from util import write_df_data, read_metadata, invert_watch_side
+from .util import write_df_data, read_metadata, invert_watch_side
 
 
 def resample_data(
