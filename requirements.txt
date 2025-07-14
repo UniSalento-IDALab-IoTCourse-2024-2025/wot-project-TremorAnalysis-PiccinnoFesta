@@ -6,4 +6,3 @@ tsdf
 scipy
 scikit-learn
 requests
-os
