@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from importlib.resources import files
 
 import pandas as pd
@@ -326,6 +327,60 @@ print("Start:", df_quant['time_dt'].min())
 print("End:  ", df_quant['time_dt'].max())
 print("Totale righe:", len(df_quant))
 
+
+
+
+
+
+def get_output_upload_url():
+    """
+    Invoca GET /getOutputUrl su API Gateway e restituisce il presigned URL per l’upload.
+    """
+    resp = requests.get("https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getOutputUrl")
+    resp.raise_for_status()
+    payload = resp.json()
+    body = json.loads(payload.get("body", "{}"))
+    url = body.get("url")
+    if not url:
+        raise RuntimeError(f"Risposta body priva di 'url': {body}")
+    return url
+
+def upload_and_cleanup(output_dir: Path):
+    """
+    Esegue l’upload del file predictions.zip su S3 usando un presigned URL
+    e poi elimina il file zip locale (e opzionalmente la cartella di output).
+    """
+    ezip_path = output_dir / "predictions.zip"
+
+    try:
+        # 1) Recupera presigned URL per upload
+        print("Richiedo presigned URL per l'upload...")
+        upload_url = get_output_upload_url()
+        print(f"URL di upload ricevuto: {upload_url}")
+
+        # 2) Esegui PUT verso S3
+        with open(ezip_path, 'rb') as f:
+            print(f"Caricamento di {ezip_path.name} su S3...")
+            resp = requests.put(
+                upload_url,
+                data=f,
+                headers={"Content-Type": "application/zip"}  
+            )
+            resp.raise_for_status()
+
+        # 3) Pulizia: elimina zip locale
+        print(f"Elimino file locale {ezip_path.name}...")
+        os.remove(ezip_path)
+        print("✅ File locale eliminato.")
+
+        # (Opzionale) Rimuovi anche la directory di output se non serve più
+        # import shutil
+        # shutil.rmtree(output_dir)
+
+    except Exception as e:
+        print(f"❌ Errore durante l'upload o pulizia: {e}")
+
+
 #-------Salvataggio come zip----------
 zip_path = output_dir / "predictions.zip"
 with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
@@ -340,6 +395,9 @@ with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
             z.write(file_path, arcname=fname)
         else:
             print(f"WARNING: {file_path} non trovato, saltato dallo ZIP")
+
+
+upload_and_cleanup(output_dir)
 
 print(f"✅ Tutti i file sono stati compressi in: {zip_path.resolve()}")
 
