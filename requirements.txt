@@ -5,3 +5,4 @@ pytz
 tsdf
 scipy
 scikit-learn
+requests

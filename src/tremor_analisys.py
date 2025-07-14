@@ -1,56 +1,133 @@
 #!/usr/bin/env python3
+from importlib.resources import files
+
 import pandas as pd
 import pytz
-import matplotlib.dates as mdates  # <— in cima al file se non già fatto
+import matplotlib.dates as mdates
 from pathlib import Path
-from importlib.resources import files
 import matplotlib.pyplot as plt
 import zipfile
-
+import requests
+from io import BytesIO
+import tempfile
+import json
 
 # Paradigma imports
-from paradigma.util import load_tsdf_dataframe
+from paradigma.util import load_tsdf_dataframe, write_df_data
 from paradigma.config import IMUConfig, TremorConfig
 from paradigma.preprocessing import preprocess_imu_data
-
-from paradigma.pipelines.tremor_pipeline import extract_tremor_features,extract_tremor_features_safe, detect_tremor
+from paradigma.pipelines.tremor_pipeline import (
+    extract_tremor_features_safe,
+    detect_tremor
+)
 import tsdf
 
 # ——— CONFIG —————————————————————————————————————————————
-uploads_dir = Path("/Users/frabincesco/Desktop/IoT/CloudServer/uploads")
-prefix_raw = "IMU"
-config_imu = IMUConfig()
+prefix_raw   = "IMU"
+config_imu   = IMUConfig()
 
-df_all_aligned = []
+# URL del tuo API Gateway — endpoint GET che crea lo zip e restituisce direttamente il presigned URL
+target_url = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getInput"
 
-print(f"Scanning all batch folders in {uploads_dir}...\n")
 
-for batch_folder in sorted(uploads_dir.iterdir()):
-    if not batch_folder.is_dir():
-        continue
+def get_input_zip_url():
+    """
+    Invoca GET /getInput su API Gateway  e restituisce il presigned URL.
+    """
+    resp = requests.get(target_url)
+    resp.raise_for_status()
 
+    # 1) Decodifica il payload:
+    payload = resp.json()
+    body_str = payload.get("body")
+    if not body_str:
+        raise RuntimeError(f"Risposta priva di 'body': {payload}")
+
+    # 2)  parsing della stringa json
     try:
-        #print(f"Processing batch: {batch_folder.name}")
-        df_raw, metadata_time, metadata_values = load_tsdf_dataframe(batch_folder, prefix=prefix_raw)
+        body = json.loads(body_str)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Impossibile decodificare body JSON: {body_str}") from e
 
-        # Ricostruzione tempo
-        start_dt = pd.to_datetime(metadata_time.start_iso8601)
-        #print(f"[DEBUG] start_dt parsed: {start_dt!r}")  # <— che valore?
-        df_raw['time_dt'] = start_dt + pd.to_timedelta(df_raw['time'], unit='ms')
-        #print("[DEBUG] primi df_raw['time_dt']:", df_raw['time_dt'].head(5))  # <— primi timestamp
+    # 3) Estraggo l'URL
+    url = body.get("url")
+    if not url:
+        raise RuntimeError(f"Risposta body priva di 'url': {body}")
 
-        # Interpolazione a frequenza costante
-        freq_ms = int(1000 / config_imu.sampling_frequency)
-        df_aligned = df_raw.set_index('time_dt').asfreq(f'{freq_ms}ms').interpolate(method='time')
-        df_aligned = df_aligned.reset_index().rename(columns={'index': 'time_dt'})
-        df_aligned['batch_id'] = batch_folder.name
-        df_aligned['start_dt'] = start_dt
+    return url
 
-        df_all_aligned.append(df_aligned)
+def download_and_extract_all(tmp_dir, presigned_url):
+    """
+    Scarica lo zip contenente tutte le cartelle di input/ ed estrae in tmp_dir.
+    Restituisce il Path della directory radice con le sottocartelle di batch.
+    """
+    resp = requests.get(presigned_url)
+    resp.raise_for_status()
+    with zipfile.ZipFile(BytesIO(resp.content)) as z:
+        z.extractall(tmp_dir)
 
-    except Exception as e:
-        print(f"Skipping {batch_folder.name} due to error: {e}")
-        continue
+    tmp_path = Path(tmp_dir)
+    # Se dopo l'estrazione c'è una singola directory (es. 'input'), usala come root
+    subdirs = [p for p in tmp_path.iterdir() if p.is_dir()]
+    if len(subdirs) == 1:
+        return subdirs[0]
+    # Altrimenti, usa direttamente tmp_dir
+    return tmp_path
+
+
+def extract_data_zip_local(data_zip_path, dest_dir):
+    if not data_zip_path.exists():
+        raise FileNotFoundError(f"{data_zip_path} non esiste")
+    dest = dest_dir / "data"
+    dest.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(data_zip_path, 'r') as z:
+        z.extractall(dest)
+    return dest
+
+# ——— MAIN —————————————————————————————————————————————
+# 1) Richiedi a Lambda di creare lo zip e ottenere il presigned URL
+print("Richiedo zip di input/ e presigned URL...")
+url_input = get_input_zip_url()
+print(f"URL ricevuto: {url_input}")
+
+# 2) Download ed estrazione del file zip in tmpdir
+df_all_aligned = []
+with tempfile.TemporaryDirectory() as tmpdir:
+    print("📥 Download ed estrazione di tutte le cartelle di input/...")
+    root_input = download_and_extract_all(tmpdir, url_input)
+
+    # Elaborazione batch per batch
+    for batch_dir in sorted(root_input.iterdir()):
+        if not batch_dir.is_dir():
+            continue
+        batch_id = batch_dir.name
+        try:
+            print(f"🔄 Processing batch: {batch_id}")
+            data_zip = batch_dir / "data.zip"
+            batch_tmp = Path(tmpdir) / f"batch_{batch_id}"
+            extracted_data = extract_data_zip_local(data_zip, batch_tmp)
+
+            df_raw, metadata_time, metadata_values = load_tsdf_dataframe(
+                extracted_data, prefix=prefix_raw
+            )
+
+            # Allineamento temporale
+            start_dt = pd.to_datetime(metadata_time.start_iso8601)
+            df_raw['time_dt'] = start_dt + pd.to_timedelta(df_raw['time'], unit='ms')
+            freq_ms = int(1000 / config_imu.sampling_frequency)
+            df_aligned = (
+                df_raw.set_index('time_dt')
+                      .asfreq(f'{freq_ms}ms')
+                      .interpolate(method='time')
+                      .reset_index()
+            )
+            df_aligned['batch_id'] = batch_id
+            df_aligned['start_dt'] = start_dt
+
+            df_all_aligned.append(df_aligned)
+        except Exception as e:
+            print(f"❌ Skipping batch {batch_id} per errore: {e}")
+            continue
 
 # ——— UNIONE DATI —————————————————————————————————————————————
 if not df_all_aligned:
