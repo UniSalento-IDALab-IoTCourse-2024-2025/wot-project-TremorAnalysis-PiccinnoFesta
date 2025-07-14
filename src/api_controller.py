@@ -3,7 +3,7 @@ import subprocess
 
 app = Flask(__name__)
 
-@app.route('/run-tremor', methods=['GET'])
+@app.route('/run-tremor', methods=['POST'])
 def run_tremor_analysis():
     try:
         # Avvia lo script tremor_analisys.py

@@ -364,7 +364,7 @@ def upload_and_cleanup(output_dir: Path):
             resp = requests.put(
                 upload_url,
                 data=f,
-                headers={"Content-Type": "application/zip"}  
+                headers={"Content-Type": "application/zip"}
             )
             resp.raise_for_status()
 
