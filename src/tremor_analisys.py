@@ -12,7 +12,7 @@ import requests
 from io import BytesIO
 import tempfile
 import json
-
+from datetime import datetime
 # Paradigma imports
 from paradigma.util import load_tsdf_dataframe, write_df_data
 from paradigma.config import IMUConfig, TremorConfig
@@ -332,30 +332,40 @@ print("Totale righe:", len(df_quant))
 
 
 
-def get_output_upload_url():
+def get_output_upload_url(timestamp_str: str):
     """
-    Invoca GET /getOutputUrl su API Gateway e restituisce il presigned URL per l’upload.
+    Richiede a Lambda un presigned URL per caricare predictions_<timestamp>.zip
     """
-    resp = requests.get("https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getOutputUrl")
+    api_url = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getOutputUrl"
+    filename = f"predictions_{timestamp_str}.zip"
+
+    headers = {"Content-Type": "application/json"}
+    payload = {"filename": filename}
+
+    resp = requests.post(api_url, json=payload, headers=headers)
     resp.raise_for_status()
+
     payload = resp.json()
     body = json.loads(payload.get("body", "{}"))
     url = body.get("url")
-    if not url:
-        raise RuntimeError(f"Risposta body priva di 'url': {body}")
-    return url
+    key = body.get("key")
 
-def upload_and_cleanup(output_dir: Path):
+    if not url:
+        raise RuntimeError(f"URL mancante nella risposta Lambda: {body}")
+    return url, filename
+
+def upload_and_cleanup(output_dir: Path, timestamp_str: str):
     """
     Esegue l’upload del file predictions.zip su S3 usando un presigned URL
     e poi elimina il file zip locale (e opzionalmente la cartella di output).
     """
-    ezip_path = output_dir / "predictions.zip"
+    filename = f"predictions_{timestamp_str}.zip"
+    ezip_path = output_dir / filename
 
     try:
         # 1) Recupera presigned URL per upload
         print("Richiedo presigned URL per l'upload...")
-        upload_url = get_output_upload_url()
+        upload_url, filename_on_s3 = get_output_upload_url(timestamp_now)
         print(f"URL di upload ricevuto: {upload_url}")
 
         # 2) Esegui PUT verso S3
@@ -373,7 +383,7 @@ def upload_and_cleanup(output_dir: Path):
         os.remove(ezip_path)
         print("✅ File locale eliminato.")
 
-        # (Opzionale) Rimuovi anche la directory di output se non serve più
+        # (Opzionale) Rimuovi anche la directory di  se non serve più
         # import shutil
         # shutil.rmtree(output_dir)
 
@@ -382,7 +392,9 @@ def upload_and_cleanup(output_dir: Path):
 
 
 #-------Salvataggio come zip----------
-zip_path = output_dir / "predictions.zip"
+timestamp_now = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+filename = f"predictions_{timestamp_now}.zip"
+zip_path = output_dir / filename
 with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
     for fname in [
         meta_time_pred.file_name,
@@ -397,7 +409,7 @@ with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
             print(f"WARNING: {file_path} non trovato, saltato dallo ZIP")
 
 
-upload_and_cleanup(output_dir)
+upload_and_cleanup(output_dir,timestamp_now)
 
 print(f"✅ Tutti i file sono stati compressi in: {zip_path.resolve()}")
 
