@@ -25,7 +25,7 @@ import tsdf
 
 
 def main(patient_id: str):
-
+    print("Starting tremor analisys...",patient_id)
 
     # ——— CONFIG —————————————————————————————————————————————
     prefix_raw   = "IMU"
@@ -340,20 +340,21 @@ def main(patient_id: str):
         headers = {
             "Content-Type": "application/json",
             "patientid": patient_id
-
         }
         payload = {"filename": filename}
 
         resp = requests.post(api_url, json=payload, headers=headers)
         resp.raise_for_status()
 
+        # Decodifica la risposta
         payload = resp.json()
-        body = json.loads(payload.get("body", "{}"))
-        url = body.get("url")
-        key = body.get("key")
+
+
+        url = payload.get("url")
 
         if not url:
-            raise RuntimeError(f"URL mancante nella risposta Lambda: {body}")
+            raise RuntimeError(f"URL mancante nella risposta Lambda: {payload}")
+
         return url, filename
 
     def upload_and_cleanup(output_dir: Path, timestamp_str: str,patient_id:str):
@@ -367,6 +368,7 @@ def main(patient_id: str):
         try:
             # 1) Recupera presigned URL per upload
             print("Richiedo presigned URL per l'upload...")
+
             upload_url, filename_on_s3 = get_output_upload_url(timestamp_now,patient_id)
             print(f"URL di upload ricevuto: {upload_url}")
 
@@ -467,9 +469,12 @@ def main(patient_id: str):
 
 if __name__ == '__main__':
     import sys
+    '''''
     if len(sys.argv) < 2:
         print("Errore: patient_id mancante")
         sys.exit(1)
     patient_id = sys.argv[1]
+    '''''
+    patient_id = '687b9fa6dab13b6732d31fa1'
     main(patient_id)
 
