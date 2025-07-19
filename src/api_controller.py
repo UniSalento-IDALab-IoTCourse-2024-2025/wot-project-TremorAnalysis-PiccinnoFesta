@@ -8,6 +8,7 @@ def run_tremor_analysis():
     try:
         # Leggi l'header 'patientid'
         patient_id = request.headers.get('patientid')
+        print(f"[FLASK] Header patientid ricevuto: {patient_id}",flush=True)
         if not patient_id:
             return jsonify({'status': 'error', 'message': 'Missing patientid header'}), 400
 
@@ -19,7 +20,7 @@ def run_tremor_analysis():
         )
         return jsonify({
             'status': 'success',
-            'stdout': 'stdout',
+            'stdout': result.stdout,
             'stderr': result.stderr,
             'returncode': result.returncode
         }), 200 if result.returncode == 0 else 500

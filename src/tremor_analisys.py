@@ -34,37 +34,26 @@ def main(patient_id: str):
     # URL del tuo API Gateway — endpoint GET che crea lo zip e restituisce direttamente il presigned URL
     target_url = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getInput"
 
-
     def get_input_zip_url(patient_id: str):
         """
-        Invoca GET /getInput su API Gateway  e restituisce il presigned URL.
+        Invoca GET /getInput su API Gateway con header patientid e restituisce il presigned URL.
         """
         headers = {
-            "patientId": patient_id
+            "patientid": patient_id
         }
+        print("[DEBUG] headers:", headers, flush=True)
 
         resp = requests.get(target_url, headers=headers)
         resp.raise_for_status()
 
-        # 1) Decodifica il payload:
         payload = resp.json()
-        body_str = payload.get("body")
-        if not body_str:
-            raise RuntimeError(f"Risposta priva di 'body': {payload}")
+        print("[DEBUG] payload:", payload, flush=True)
 
-        # 2)  parsing della stringa json
-        try:
-            body = json.loads(body_str)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"Impossibile decodificare body JSON: {body_str}") from e
-
-        # 3) Estraggo l'URL
-        url = body.get("url")
+        url = payload.get("url")
         if not url:
-            raise RuntimeError(f"Risposta body priva di 'url': {body}")
+            raise RuntimeError(f"Risposta priva di 'url': {payload}")
 
         return url
-
     def download_and_extract_all(tmp_dir, presigned_url):
         """
         Scarica lo zip contenente tutte le cartelle di input/ ed estrae in tmp_dir.
@@ -96,7 +85,8 @@ def main(patient_id: str):
     # ——— MAIN —————————————————————————————————————————————
     # 1) Richiedi a Lambda di creare lo zip e ottenere il presigned URL
     print("Richiedo zip di input/ e presigned URL...")
-    url_input = get_input_zip_url(patient_id)    
+    print(f"[DEBUG] patient_id ricevuto in main(): {patient_id!r}")
+    url_input = get_input_zip_url(patient_id)
     print(f"URL ricevuto: {url_input}")
 
     # 2) Download ed estrazione del file zip in tmpdir
@@ -482,3 +472,4 @@ if __name__ == '__main__':
         sys.exit(1)
     patient_id = sys.argv[1]
     main(patient_id)
+
