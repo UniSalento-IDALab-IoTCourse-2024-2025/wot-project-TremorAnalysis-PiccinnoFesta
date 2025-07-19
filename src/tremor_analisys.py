@@ -35,7 +35,7 @@ def main(patient_id: str):
     target_url = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getInput"
 
 
-    def get_input_zip_url():
+    def get_input_zip_url(patient_id: str):
         """
         Invoca GET /getInput su API Gateway  e restituisce il presigned URL.
         """
@@ -96,7 +96,7 @@ def main(patient_id: str):
     # ——— MAIN —————————————————————————————————————————————
     # 1) Richiedi a Lambda di creare lo zip e ottenere il presigned URL
     print("Richiedo zip di input/ e presigned URL...")
-    url_input = get_input_zip_url()
+    url_input = get_input_zip_url(patient_id)    
     print(f"URL ricevuto: {url_input}")
 
     # 2) Download ed estrazione del file zip in tmpdir
