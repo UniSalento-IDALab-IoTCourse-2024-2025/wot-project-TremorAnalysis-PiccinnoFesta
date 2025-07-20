@@ -42,6 +42,8 @@ L'interfaccia web, esposta da un microservizio sul cloud, e sviluppata con React
 - SmartWatchService: [Smartwatch]([https://esempio.com](https://github.com/UniSalento-IDALab-IoTCourse-2024-2025/wot-project-smartwatch-PiccinnoFesta))
 - BLE server: [BLE Server]([http](https://github.com/UniSalento-IDALab-IoTCourse-2024-2025/wot-project-BLEserver-PiccinnoFesta))
 - Frontend: [Frontend]([http](https://github.com/UniSalento-IDALab-IoTCourse-2024-2025/wot-project-Frontend-PiccinnoFesta))
+- Presentation: [Presentation](https://github.com/UniSalento-IDALab-IoTCourse-2024-2025/wot-project-presentation-PiccinnoFesta)
+
   
 
 
