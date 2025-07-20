@@ -32,28 +32,62 @@ def main(patient_id: str):
     config_imu   = IMUConfig()
 
     # URL del tuo API Gateway — endpoint GET che crea lo zip e restituisce direttamente il presigned URL
-    target_url = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference/getInput"
+    import time
+    import requests
 
-    def get_input_zip_url(patient_id: str):
-        """
-        Invoca GET /getInput su API Gateway con header patientid e restituisce il presigned URL.
-        """
-        headers = {
-            "patientid": patient_id
-        }
-        print("[DEBUG] headers:", headers, flush=True)
+    API_BASE = "https://3qpkphed39.execute-api.us-east-1.amazonaws.com/dev/api/inference"
 
-        resp = requests.get(target_url, headers=headers)
+    def start_zip_job(patient_id: str) -> str:
+        url = f"{API_BASE}/startJob"
+        headers = {"patientid": patient_id}
+        resp = requests.post(url, headers=headers, timeout=10)
         resp.raise_for_status()
+        data = resp.json()
+        job_id = data.get("job_id")
+        if not job_id:
+            raise RuntimeError(f"Nessun job_id nella risposta: {data}")
+        return job_id
 
-        payload = resp.json()
-        print("[DEBUG] payload:", payload, flush=True)
+    def check_zip_job(job_id: str) -> str:
+        url = f"{API_BASE}/checkJob"
+        resp = requests.get(url, params={"job_id": job_id}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("status", "unknown")
 
-        url = payload.get("url")
-        if not url:
-            raise RuntimeError(f"Risposta priva di 'url': {payload}")
+    def get_zip_result(job_id: str) -> str:
+        url = f"{API_BASE}/getResult"
+        resp = requests.get(url, params={"job_id": job_id}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        presigned_url = data.get("url")
+        if not presigned_url:
+            raise RuntimeError(f"Nessun URL nella risposta: {data}")
+        return presigned_url
 
-        return url
+    def get_input_zip_url(patient_id: str, poll_interval=5, timeout_s=300) -> str:
+        """
+        Avvia job di preparazione zip per patient_id, attende completamento, restituisce presigned URL.
+        """
+        print(f"[ASYNC] Avvio job per patient_id={patient_id}")
+        job_id = start_zip_job(patient_id)
+        print(f"[ASYNC] job_id={job_id}")
+
+        start = time.time()
+        while True:
+            status = check_zip_job(job_id)
+            print(f"[ASYNC] stato job={status}")
+            if status == "done":
+                break
+            if status == "failed":
+                raise RuntimeError("Job fallito lato server.")
+            if time.time() - start > timeout_s:
+                raise TimeoutError("Timeout in attesa completamento job.")
+            time.sleep(poll_interval)
+
+        presigned_url = get_zip_result(job_id)
+        print(f"[ASYNC] URL pronto: {presigned_url}")
+        return presigned_url
     def download_and_extract_all(tmp_dir, presigned_url):
         """
         Scarica lo zip contenente tutte le cartelle di input/ ed estrae in tmp_dir.
@@ -469,12 +503,9 @@ def main(patient_id: str):
 
 if __name__ == '__main__':
     import sys
-    '''''
     if len(sys.argv) < 2:
         print("Errore: patient_id mancante")
         sys.exit(1)
     patient_id = sys.argv[1]
-    '''''
-    patient_id = '687b9fa6dab13b6732d31fa1'
     main(patient_id)
 
