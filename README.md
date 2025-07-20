@@ -82,6 +82,6 @@ Di seguito sono presentati alcuni dei valori forniti graficamente dall'applicazi
 </div>
 
 <div align="center">
-  <img src="img/armAtRest.png" alt="Arm at rest" width="400"/>
+  <img src="img/armRest.png" alt="Arm at rest" width="400"/>
 </div>
 
