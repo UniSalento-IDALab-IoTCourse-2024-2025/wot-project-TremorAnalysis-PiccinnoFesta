@@ -45,3 +45,43 @@ L'interfaccia web, esposta da un microservizio sul cloud, e sviluppata con React
   
 
 
+## Tremor Analisys
+
+Questo microservizio prevede due componenti:
+ -`api_controller.py`: per l'esposizione di un endpoint per chiamate REST, implementato tramite *Flask* e raggiungibile grazie all'instradamento di API GATEWAY
+ esegue una pipeline completa per l'**analisi automatica del tremore** a partire da dati raccolti via smartwatch (in formato TSDF). L’intero processo è automatizzato: scarica i dati da un server remoto, li elabora, estrae le feature, classifica la presenza di tremore e infine carica i risultati nuovamente sul server.
+ -`tremor_analisys.py`: centro nevralgico dell servizio. Recupera i dati tramite S3, e sfrutta il toolbox di ParaDigMa per analizzare i dati, estrarre feature, e compiere una classificazione tramite un regressore logistico pre-addestrato.
+ 
+
+### Funzionamento
+
+1. **Richiede i dati di input** per un certo `patient_id` a API Gateway, il quale fornisce un *presigned url* (url autorizzato) per l'interazione con il database S3.
+2. **Scarica e decomprime** i dati `.zip` che contengono segmenti in formato TSDF.
+3. **Carica e allinea** i dati temporali dei batch.
+4. **Esegue il preprocessing** sui segnali (es. filtraggio, interpolazione).
+5. **Estrae feature di tremore** con finestre mobili.
+6. **Classifica** la presenza di tremore (e se il braccio è a riposo) usando un modello pre-addestrato.
+7. **Salva i risultati** in formato binario (TSDF) con relativi metadati.
+8. **Comprime e carica** i risultati sul database remoto richiedendo (sempre tramite API GATEWAY), un presigned url per il caricamento su S3.
+9. **Visualizza** i risultati dell’analisi in tre grafici
+
+### Grafici
+
+I grafici forniti, rappresentano l'elaborazione dei dati, e si dividono in:
+- **Tremor power**: intensità del tremore effettivamente rilevato e classificato come tale
+- **Tremor probability**: probabilità che un dato tremore sia effettivo oppure dovuto a movimenti volontari
+- **Arm at Rest**: classificazione del movimento del paziente per indicare quando il braccio è a riposo e quando no. Un forte tremore in corrispondenza di braccio a riposo ha più probabilità di essere identificato come movimento involontario, e dunque tremore effettivo.
+
+Di seguito sono presentati alcuni dei valori forniti graficamente dall'applicazione:
+
+<div align="center">
+  <img src="img/tremorPower.png" alt="Tremor power" width="400"/>
+</div>
+<div align="center">
+  <img src="img/tremorProba.png" alt="Tremor probability" width="400"/>
+</div>
+
+<div align="center">
+  <img src="img/armAtRest.png" alt="Arm at rest" width="400"/>
+</div>
+
